@@ -1,106 +1,138 @@
 
-import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
-import { Button } from "./ui/button";
-import { ThemeToggle } from "./ThemeToggle";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { ThemeToggle } from "./ThemeToggle";
+import { Bell, LogIn } from "lucide-react";
+import { Button } from "./ui/button";
 
 const Navbar = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  const toggleMobileMenu = () => {
-    setMobileMenuOpen(!mobileMenuOpen);
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-    
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const navLinks = [
-    { name: "Home", href: "#home" },
-    { name: "About", href: "#about" },
-    { name: "Projects", href: "#projects" },
-    { name: "Testimonials", href: "#testimonials" },
-    { name: "Contact", href: "#contact" }
-  ];
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isLoggedIn = false; // Will be replaced with actual auth logic later
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-white/80 dark:bg-gray-950/80 backdrop-blur-md shadow-sm"
-          : "bg-transparent"
-      }`}
-    >
-      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-4 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-bold text-primary">
-          DevFolio<span className="text-accent">.</span>
+    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
+      <div className="container flex h-16 items-center px-4 sm:px-6">
+        <Link to="/" className="flex items-center gap-2">
+          <span className="text-xl font-bold text-primary">MediChat</span>
         </Link>
-
+        
+        <div className="flex-1" />
+        
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex gap-6 items-center">
-          <ul className="flex gap-6">
-            {navLinks.map((link) => (
-              <li key={link.name}>
-                <a 
-                  href={link.href}
-                  className="font-medium hover:text-primary transition-colors"
-                >
-                  {link.name}
-                </a>
-              </li>
-            ))}
-          </ul>
-          <ThemeToggle />
-          <Button>Resume</Button>
-        </nav>
-
-        {/* Mobile Menu Buttons */}
-        <div className="md:hidden flex items-center gap-4">
+        <div className="hidden md:flex items-center gap-4">
+          <Link to="/" className="hover:text-primary transition-colors">
+            Home
+          </Link>
+          <Link to="/chat" className="hover:text-primary transition-colors">
+            Chat
+          </Link>
+          <Link to="/symptoms" className="hover:text-primary transition-colors">
+            Symptoms
+          </Link>
+          <Link to="/health-metrics" className="hover:text-primary transition-colors">
+            Health Metrics
+          </Link>
+          <div className="ml-4 flex items-center gap-2">
+            <ThemeToggle />
+            {isLoggedIn ? (
+              <>
+                <Button variant="ghost" size="icon">
+                  <Bell className="h-5 w-5" />
+                </Button>
+                <Button variant="default">Dashboard</Button>
+              </>
+            ) : (
+              <Button variant="default">
+                <LogIn className="mr-2 h-5 w-5" /> Sign In
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        {/* Mobile Menu Button */}
+        <div className="flex items-center md:hidden">
           <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
-            onClick={toggleMobileMenu}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
+            className="ml-2"
           >
-            {mobileMenuOpen ? <X /> : <Menu />}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              {isMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
           </Button>
         </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 top-16 z-50 bg-background p-6 animate-fade-in">
-            <ul className="flex flex-col gap-4 font-medium text-lg">
-              {navLinks.map((link) => (
-                <li key={link.name} className="py-2">
-                  <a 
-                    href={link.href}
-                    className="hover:text-primary transition-colors"
-                    onClick={toggleMobileMenu}
-                  >
-                    {link.name}
-                  </a>
-                </li>
-              ))}
-              <li className="mt-6">
-                <Button className="w-full">Resume</Button>
-              </li>
-            </ul>
-          </div>
-        )}
       </div>
-    </header>
+      
+      {/* Mobile Menu */}
+      {isMenuOpen && (
+        <div className="container md:hidden px-4 pb-4">
+          <div className="flex flex-col space-y-3">
+            <Link 
+              to="/" 
+              className="px-2 py-1 rounded-md hover:bg-accent"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link 
+              to="/chat" 
+              className="px-2 py-1 rounded-md hover:bg-accent"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Chat
+            </Link>
+            <Link 
+              to="/symptoms" 
+              className="px-2 py-1 rounded-md hover:bg-accent"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Symptoms
+            </Link>
+            <Link 
+              to="/health-metrics" 
+              className="px-2 py-1 rounded-md hover:bg-accent"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Health Metrics
+            </Link>
+            <div className="pt-2">
+              {isLoggedIn ? (
+                <Button variant="default" className="w-full">
+                  Dashboard
+                </Button>
+              ) : (
+                <Button variant="default" className="w-full">
+                  <LogIn className="mr-2 h-5 w-5" /> Sign In
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </nav>
   );
 };
 
