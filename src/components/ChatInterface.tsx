@@ -4,16 +4,9 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card, CardContent } from "./ui/card";
 import { Mic, Send, User } from "lucide-react";
-
-// Mock data for initial messages
-const initialMessages = [
-  {
-    id: 1,
-    role: "assistant",
-    content: "Hello! I'm your medical assistant. How can I help you today?",
-    timestamp: new Date(),
-  },
-];
+import { toast } from "./ui/sonner";
+import { sendMessageToGemini } from "@/services/geminiService";
+import ApiKeyInput from "./ApiKeyInput";
 
 // Mock function for future integration with Speech API
 const useSpeechRecognition = () => {
@@ -37,12 +30,35 @@ const useSpeechRecognition = () => {
   return { transcript, isListening, startListening, stopListening, setTranscript };
 };
 
+interface Message {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
+
 const ChatInterface = () => {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      role: "assistant",
+      content: "Hello! I'm your medical assistant. How can I help you today?",
+      timestamp: new Date(),
+    },
+  ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { transcript, isListening, startListening, stopListening, setTranscript } = useSpeechRecognition();
+
+  // Check for saved API key on mount
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem("gemini-api-key");
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+    }
+  }, []);
 
   // Scroll to bottom of messages
   useEffect(() => {
@@ -56,25 +72,17 @@ const ChatInterface = () => {
     }
   }, [transcript]);
 
-  // Mock AI response function (to be replaced with actual Gemini API integration)
-  const getMockAIResponse = (message: string) => {
-    // Simple keyword matching for demo purposes
-    if (message.toLowerCase().includes("headache")) {
-      return "Based on your symptoms, you may be experiencing a tension headache or migraine. Make sure you're hydrated and consider taking a break from screens. If the pain persists or worsens, please consult with a healthcare provider.";
-    } else if (message.toLowerCase().includes("fever")) {
-      return "Fever can be a sign of infection. Monitor your temperature and stay hydrated. If your temperature exceeds 103°F (39.4°C) or persists for more than 3 days, please seek medical attention.";
-    } else {
-      return "Thank you for sharing that information. To provide better guidance, could you please share more specific symptoms or health concerns?";
-    }
-  };
-
   const handleSendMessage = async () => {
     if (!input.trim()) return;
+    if (!apiKey) {
+      toast.error("Please enter your Gemini API key first");
+      return;
+    }
 
     // Add user message
     const userMessage = {
       id: messages.length + 1,
-      role: "user",
+      role: "user" as const,
       content: input,
       timestamp: new Date(),
     };
@@ -83,22 +91,33 @@ const ChatInterface = () => {
     setInput("");
     setIsLoading(true);
 
-    // Simulate API delay
-    setTimeout(() => {
-      // Add assistant response
+    try {
+      // Get response from Gemini API
+      const response = await sendMessageToGemini(apiKey, input);
+
+      // Add AI response
       const aiResponse = {
         id: messages.length + 2,
-        role: "assistant",
-        content: getMockAIResponse(input),
+        role: "assistant" as const,
+        content: response,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      console.error("Error getting response:", error);
+      toast.error("Failed to get response from Gemini. Please check your API key and try again.");
+      
+      // If the error is related to the API key, clear it so the user can enter it again
+      if (String(error).includes("API key")) {
+        localStorage.removeItem("gemini-api-key");
+        setApiKey(null);
+      }
+    } finally {
       setIsLoading(false);
-    }, 1500);
-
-    // Clear transcript
-    setTranscript("");
+      // Clear transcript
+      setTranscript("");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -107,6 +126,15 @@ const ChatInterface = () => {
       handleSendMessage();
     }
   };
+
+  // If no API key, show the input form
+  if (!apiKey) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <ApiKeyInput onApiKeySubmit={setApiKey} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
@@ -206,7 +234,7 @@ const ChatInterface = () => {
             <Button
               size="icon"
               onClick={handleSendMessage}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
               className="absolute bottom-2 right-2"
             >
               <Send className="h-5 w-5" />
