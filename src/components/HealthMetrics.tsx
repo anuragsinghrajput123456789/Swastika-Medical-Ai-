@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,11 +7,36 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { ChartContainer } from "./ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+
+// Define type for health metrics data
+interface BloodPressureData {
+  date: string;
+  systolic: number;
+  diastolic: number;
+}
+
+interface BloodSugarData {
+  date: string;
+  fasting: number;
+  afterMeal: number;
+}
+
+interface WeightData {
+  date: string;
+  weight: number;
+}
+
+interface MedicationData {
+  name: string;
+  dosage: string;
+  schedule: string;
+  adherence: number;
+}
 
 const HealthMetrics = () => {
   const [activeTab, setActiveTab] = useState("bloodPressure");
@@ -18,10 +44,10 @@ const HealthMetrics = () => {
   const { user } = useAuth();
   
   // State for health metrics data
-  const [bloodPressureData, setBloodPressureData] = useState([]);
-  const [bloodSugarData, setBloodSugarData] = useState([]);
-  const [weightData, setWeightData] = useState([]);
-  const [medicationData, setMedicationData] = useState([]);
+  const [bloodPressureData, setBloodPressureData] = useState<BloodPressureData[]>([]);
+  const [bloodSugarData, setBloodSugarData] = useState<BloodSugarData[]>([]);
+  const [weightData, setWeightData] = useState<WeightData[]>([]);
+  const [medicationData, setMedicationData] = useState<MedicationData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Form states
@@ -53,18 +79,18 @@ const HealthMetrics = () => {
       const { data: bpData, error: bpError } = await supabase
         .from('health_metrics')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .eq('type', 'blood_pressure')
         .order('date', { ascending: true });
         
       if (bpError) throw bpError;
       
       // Process the BP data for the chart
-      const processedBPData = bpData.map(item => ({
+      const processedBPData = bpData ? bpData.map(item => ({
         date: format(new Date(item.date), 'MMM d'),
         systolic: item.data.systolic,
         diastolic: item.data.diastolic
-      }));
+      })) : [];
       
       setBloodPressureData(processedBPData.length ? processedBPData : [
         { date: "Jan 1", systolic: 120, diastolic: 80 },
@@ -144,7 +170,7 @@ const HealthMetrics = () => {
             .insert({
               user_id: user.id,
               type: 'blood_pressure',
-              date: date,
+              date: new Date(date).toISOString(),
               data: {
                 systolic: parseInt(systolic),
                 diastolic: parseInt(diastolic),
@@ -239,7 +265,9 @@ const HealthMetrics = () => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{getDialogTitle()}</DialogTitle>
+                <DialogTitle>{activeTab === "bloodPressure" ? "Add Blood Pressure Reading" : 
+                              activeTab === "bloodSugar" ? "Add Blood Sugar Reading" : 
+                              activeTab === "weight" ? "Add Weight Reading" : "Add Medication"}</DialogTitle>
                 <DialogDescription>
                   Enter your new health data below.
                 </DialogDescription>
