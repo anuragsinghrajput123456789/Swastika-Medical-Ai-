@@ -38,6 +38,16 @@ interface MedicationData {
   adherence: number;
 }
 
+// Define type for health metrics from database
+interface HealthMetric {
+  id: string;
+  user_id: string;
+  type: string; 
+  date: string;
+  data: any;
+  created_at: string;
+}
+
 const HealthMetrics = () => {
   const [activeTab, setActiveTab] = useState("bloodPressure");
   const [showAddDialog, setShowAddDialog] = useState(false);
@@ -75,18 +85,20 @@ const HealthMetrics = () => {
   const fetchHealthMetrics = async () => {
     setIsLoading(true);
     try {
+      if (!user) return;
+      
       // Fetch blood pressure data
       const { data: bpData, error: bpError } = await supabase
-        .from('health_metrics')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('type', 'blood_pressure')
-        .order('date', { ascending: true });
+        .from("health_metrics")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("type", "blood_pressure")
+        .order("date", { ascending: true });
         
       if (bpError) throw bpError;
       
       // Process the BP data for the chart
-      const processedBPData = bpData ? bpData.map(item => ({
+      const processedBPData = bpData ? bpData.map((item: HealthMetric) => ({
         date: format(new Date(item.date), 'MMM d'),
         systolic: item.data.systolic,
         diastolic: item.data.diastolic
@@ -166,7 +178,7 @@ const HealthMetrics = () => {
           }
           
           const { error: bpError } = await supabase
-            .from('health_metrics')
+            .from("health_metrics")
             .insert({
               user_id: user.id,
               type: 'blood_pressure',
