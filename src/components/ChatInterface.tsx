@@ -1,248 +1,285 @@
 
-import { useState, useRef, useEffect } from "react";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
-import { Card, CardContent } from "./ui/card";
-import { Mic, Send, User } from "lucide-react";
-import { toast } from "./ui/sonner";
-import { sendMessageToGemini } from "@/services/geminiService";
+import { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "@/hooks/use-toast";
 import ApiKeyInput from "./ApiKeyInput";
 
-// Mock function for future integration with Speech API
-const useSpeechRecognition = () => {
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
-
-  // This would be replaced with actual Web Speech API implementation
-  const startListening = () => {
-    setIsListening(true);
-    // Mock recording for 3 seconds
-    setTimeout(() => {
-      setTranscript("I have a headache and feel dizzy");
-      setIsListening(false);
-    }, 3000);
-  };
-
-  const stopListening = () => {
-    setIsListening(false);
-  };
-
-  return { transcript, isListening, startListening, stopListening, setTranscript };
-};
-
 interface Message {
-  id: number;
+  id?: string;
   role: "user" | "assistant";
   content: string;
-  timestamp: Date;
+  timestamp?: Date;
 }
 
 const ChatInterface = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      role: "assistant",
-      content: "Hello! I'm your medical assistant. How can I help you today?",
-      timestamp: new Date(),
-    },
-  ]);
-  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { transcript, isListening, startListening, stopListening, setTranscript } = useSpeechRecognition();
+  const { user } = useAuth();
 
-  // Check for saved API key on mount
   useEffect(() => {
+    // Check if API key is saved in localStorage
     const savedApiKey = localStorage.getItem("gemini-api-key");
     if (savedApiKey) {
       setApiKey(savedApiKey);
     }
-  }, []);
 
-  // Scroll to bottom of messages
+    // Load chat history from Supabase if user is logged in
+    if (user) {
+      loadChatHistory();
+    }
+  }, [user]);
+
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollToBottom();
   }, [messages]);
 
-  // Update input when transcript changes
-  useEffect(() => {
-    if (transcript) {
-      setInput(transcript);
-    }
-  }, [transcript]);
-
-  const handleSendMessage = async () => {
-    if (!input.trim()) return;
-    if (!apiKey) {
-      toast.error("Please enter your Gemini API key first");
-      return;
-    }
-
-    // Add user message
-    const userMessage = {
-      id: messages.length + 1,
-      role: "user" as const,
-      content: input,
-      timestamp: new Date(),
-    };
-
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-    setIsLoading(true);
-
+  const loadChatHistory = async () => {
     try {
-      // Get response from Gemini API
-      const response = await sendMessageToGemini(apiKey, input);
+      const { data, error } = await supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: true })
+        .limit(50);
 
-      // Add AI response
-      const aiResponse = {
-        id: messages.length + 2,
-        role: "assistant" as const,
-        content: response,
-        timestamp: new Date(),
-      };
+      if (error) throw error;
 
-      setMessages((prev) => [...prev, aiResponse]);
-    } catch (error) {
-      console.error("Error getting response:", error);
-      toast.error("Failed to get response from Gemini. Please check your API key and try again.");
-      
-      // If the error is related to the API key, clear it so the user can enter it again
-      if (String(error).includes("API key")) {
-        localStorage.removeItem("gemini-api-key");
-        setApiKey(null);
+      if (data && data.length > 0) {
+        const formattedMessages: Message[] = [];
+        data.forEach(item => {
+          formattedMessages.push({
+            id: item.id,
+            role: "user",
+            content: item.message,
+            timestamp: new Date(item.created_at)
+          });
+          
+          formattedMessages.push({
+            role: "assistant",
+            content: item.response,
+            timestamp: new Date(item.created_at)
+          });
+        });
+        
+        setMessages(formattedMessages);
+      } else {
+        // Set welcome message if no history
+        setMessages([
+          {
+            role: "assistant",
+            content: "Hello! I'm your medical assistant. How can I help you today?",
+            timestamp: new Date()
+          }
+        ]);
       }
-    } finally {
-      setIsLoading(false);
-      // Clear transcript
-      setTranscript("");
+    } catch (error) {
+      console.error("Error loading chat history:", error);
+      toast({
+        title: "Error loading chat history",
+        description: "Could not load your previous conversations.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return;
+    
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to use the chat feature.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const userMessage: Message = {
+      role: "user",
+      content: inputMessage,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage("");
+    setIsLoading(true);
+
+    try {
+      // Format history for the Gemini API
+      const history = messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('gemini-chat', {
+        body: { message: inputMessage, history },
+      });
+
+      if (error) throw error;
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: data.response,
+        timestamp: new Date()
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+
+      // Save the conversation to Supabase
+      await supabase
+        .from('chat_history')
+        .insert({
+          user_id: user.id,
+          message: inputMessage,
+          response: data.response
+        });
+
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error sending message",
+        description: "Could not get a response from the assistant.",
+        variant: "destructive",
+      });
+
+      setMessages(prev => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "I'm sorry, I encountered an error processing your request. Please try again later.",
+          timestamp: new Date()
+        }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
-  // If no API key, show the input form
-  if (!apiKey) {
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <ApiKeyInput onApiKeySubmit={setApiKey} />
-      </div>
-    );
+  if (!apiKey && !process.env.GEMINI_API_KEY) {
+    return <ApiKeyInput onApiKeySubmit={setApiKey} />;
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <div className="container flex-1 overflow-y-auto py-4">
-        {/* Chat messages */}
-        <div className="space-y-4 px-4 md:px-6 pb-4">
-          {messages.map((message) => (
+    <Card className="w-full max-w-4xl mx-auto my-8">
+      <CardHeader>
+        <CardTitle>Medical Assistant</CardTitle>
+        <CardDescription>
+          Ask questions about symptoms, treatments, and general health information
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-4 h-[500px] overflow-y-auto">
+        <div className="space-y-4">
+          {messages.map((message, index) => (
             <div
-              key={message.id}
+              key={index}
               className={`flex ${
-                message.role === "user" ? "justify-end" : "justify-start"
+                message.role === "assistant" ? "justify-start" : "justify-end"
               }`}
             >
-              <Card
-                className={`max-w-[80%] md:max-w-[70%] ${
-                  message.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : ""
+              <div
+                className={`flex gap-3 max-w-[80%] ${
+                  message.role === "assistant" ? "" : "flex-row-reverse"
                 }`}
               >
-                <CardContent className="p-4">
-                  {message.role === "assistant" && (
-                    <div className="mb-2 flex items-center">
-                      <div className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                        🩺
-                      </div>
-                      <span className="text-sm font-medium">MediChat</span>
+                {message.role === "assistant" ? (
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary/10 text-primary">AI</AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={null} />
+                    <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
+                )}
+
+                <div
+                  className={`rounded-lg p-3 ${
+                    message.role === "assistant"
+                      ? "bg-muted"
+                      : "bg-primary text-primary-foreground"
+                  }`}
+                >
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  {message.timestamp && (
+                    <div
+                      className={`text-xs mt-1 ${
+                        message.role === "assistant"
+                          ? "text-muted-foreground"
+                          : "text-primary-foreground/70"
+                      }`}
+                    >
+                      {new Date(message.timestamp).toLocaleTimeString()}
                     </div>
                   )}
-                  {message.role === "user" && (
-                    <div className="mb-2 flex items-center justify-end">
-                      <span className="text-sm font-medium">You</span>
-                      <div className="ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/10">
-                        <User className="h-4 w-4" />
-                      </div>
-                    </div>
-                  )}
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                  <div
-                    className={`mt-2 text-xs ${
-                      message.role === "user"
-                        ? "text-primary-foreground/70"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="mb-2 flex items-center">
-                    <div className="mr-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-                      🩺
-                    </div>
-                    <span className="text-sm font-medium">MediChat</span>
+              <div className="flex gap-3 max-w-[80%]">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary/10 text-primary">AI</AvatarFallback>
+                </Avatar>
+                <div className="rounded-lg p-3 bg-muted">
+                  <div className="flex items-center space-x-2">
+                    <div className="h-2 w-2 rounded-full bg-current animate-bounce"></div>
+                    <div className="h-2 w-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                    <div className="h-2 w-2 rounded-full bg-current animate-bounce" style={{ animationDelay: "0.4s" }}></div>
                   </div>
-                  <div className="flex space-x-2">
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary"></div>
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "0.2s" }}></div>
-                    <div className="h-2 w-2 animate-bounce rounded-full bg-primary" style={{ animationDelay: "0.4s" }}></div>
-                  </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           )}
           <div ref={messagesEndRef} />
         </div>
-      </div>
-      
-      {/* Chat input */}
-      <div className="border-t bg-background p-4">
-        <div className="container flex items-end gap-2">
-          <Button
-            variant={isListening ? "destructive" : "outline"}
-            size="icon"
-            onClick={isListening ? stopListening : startListening}
-            className="flex-shrink-0"
-          >
-            <Mic className="h-5 w-5" />
+      </CardContent>
+      <CardFooter className="border-t p-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSendMessage();
+          }}
+          className="flex w-full items-center space-x-2"
+        >
+          <Input
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Type your message..."
+            className="flex-1"
+            disabled={isLoading}
+          />
+          <Button type="submit" disabled={isLoading || !inputMessage.trim()}>
+            {isLoading ? (
+              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              "Send"
+            )}
           </Button>
-          <div className="relative flex-1">
-            <Textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your health question..."
-              className="min-h-[60px] pr-12 resize-none"
-            />
-            <Button
-              size="icon"
-              onClick={handleSendMessage}
-              disabled={!input.trim() || isLoading}
-              className="absolute bottom-2 right-2"
-            >
-              <Send className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+        </form>
+      </CardFooter>
+    </Card>
   );
 };
 

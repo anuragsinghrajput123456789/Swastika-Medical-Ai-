@@ -1,138 +1,102 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ThemeToggle } from "./ThemeToggle";
-import { Bell, LogIn } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { Menu } from "lucide-react";
+import UserMenu from "@/components/auth/UserMenu";
+import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isLoggedIn = false; // Will be replaced with actual auth logic later
+  const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
+
+  const navItems = [
+    { name: "Home", href: "/" },
+    { name: "Chat", href: "/chat" },
+    { name: "Symptoms", href: "/symptoms" },
+    { name: "Health Metrics", href: "/health-metrics" },
+  ];
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur">
-      <div className="container flex h-16 items-center px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold text-primary">MediChat</span>
-        </Link>
-        
-        <div className="flex-1" />
-        
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center gap-4">
-          <Link to="/" className="hover:text-primary transition-colors">
-            Home
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <div className="mr-4 md:flex">
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="text-2xl font-bold">MediChat</span>
           </Link>
-          <Link to="/chat" className="hover:text-primary transition-colors">
-            Chat
-          </Link>
-          <Link to="/symptoms" className="hover:text-primary transition-colors">
-            Symptoms
-          </Link>
-          <Link to="/health-metrics" className="hover:text-primary transition-colors">
-            Health Metrics
-          </Link>
-          <div className="ml-4 flex items-center gap-2">
+        </div>
+        <div className="hidden md:flex md:flex-1 md:items-center md:justify-between md:space-x-4">
+          <nav className="flex items-center space-x-6">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                {item.name}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center space-x-2">
             <ThemeToggle />
-            {isLoggedIn ? (
-              <>
-                <Button variant="ghost" size="icon">
-                  <Bell className="h-5 w-5" />
-                </Button>
-                <Button variant="default">Dashboard</Button>
-              </>
+            {user ? (
+              <UserMenu />
             ) : (
-              <Button variant="default">
-                <LogIn className="mr-2 h-5 w-5" /> Sign In
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to="/signin">Sign In</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link to="/signup">Sign Up</Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>
-        
-        {/* Mobile Menu Button */}
-        <div className="flex items-center md:hidden">
+        <div className="flex flex-1 items-center justify-end space-x-4 md:hidden">
           <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-label="Toggle menu"
-            className="ml-2"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              {isMenuOpen ? (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              ) : (
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              )}
-            </svg>
-          </Button>
+          {user && <UserMenu />}
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle navigation menu</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="pr-0 w-[300px]">
+              <nav className="grid gap-6 text-lg font-medium">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    className="flex w-full items-center py-2 hover:text-primary"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+                {!user && (
+                  <div className="grid gap-2 mt-4">
+                    <Button variant="default" asChild>
+                      <Link to="/signin" onClick={() => setIsOpen(false)}>
+                        Sign In
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild>
+                      <Link to="/signup" onClick={() => setIsOpen(false)}>
+                        Sign Up
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
-      
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="container md:hidden px-4 pb-4">
-          <div className="flex flex-col space-y-3">
-            <Link 
-              to="/" 
-              className="px-2 py-1 rounded-md hover:bg-accent"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Home
-            </Link>
-            <Link 
-              to="/chat" 
-              className="px-2 py-1 rounded-md hover:bg-accent"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Chat
-            </Link>
-            <Link 
-              to="/symptoms" 
-              className="px-2 py-1 rounded-md hover:bg-accent"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Symptoms
-            </Link>
-            <Link 
-              to="/health-metrics" 
-              className="px-2 py-1 rounded-md hover:bg-accent"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Health Metrics
-            </Link>
-            <div className="pt-2">
-              {isLoggedIn ? (
-                <Button variant="default" className="w-full">
-                  Dashboard
-                </Button>
-              ) : (
-                <Button variant="default" className="w-full">
-                  <LogIn className="mr-2 h-5 w-5" /> Sign In
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </nav>
+    </header>
   );
 };
 
