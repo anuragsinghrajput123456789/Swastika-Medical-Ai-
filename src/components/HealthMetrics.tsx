@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "./ui/button";
@@ -8,10 +7,45 @@ import { Label } from "./ui/label";
 import { Input } from "./ui/input";
 import { ChartContainer } from "./ui/chart";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
-import { useAuth } from "@/context/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "@/hooks/use-toast";
+
+// Sample data
+const sampleBloodPressureData = [
+  { date: "Jan 1", systolic: 120, diastolic: 80 },
+  { date: "Jan 5", systolic: 122, diastolic: 82 },
+  { date: "Jan 10", systolic: 118, diastolic: 79 },
+  { date: "Jan 15", systolic: 121, diastolic: 81 },
+  { date: "Jan 20", systolic: 119, diastolic: 80 },
+  { date: "Jan 25", systolic: 123, diastolic: 83 },
+  { date: "Jan 30", systolic: 120, diastolic: 80 },
+];
+
+const sampleBloodSugarData = [
+  { date: "Jan 1", fasting: 95, afterMeal: 120 },
+  { date: "Jan 5", fasting: 92, afterMeal: 118 },
+  { date: "Jan 10", fasting: 98, afterMeal: 130 },
+  { date: "Jan 15", fasting: 94, afterMeal: 122 },
+  { date: "Jan 20", fasting: 90, afterMeal: 115 },
+  { date: "Jan 25", fasting: 93, afterMeal: 125 },
+  { date: "Jan 30", fasting: 96, afterMeal: 127 },
+];
+
+const sampleWeightData = [
+  { date: "Jan 1", weight: 165 },
+  { date: "Jan 5", weight: 164 },
+  { date: "Jan 10", weight: 163 },
+  { date: "Jan 15", weight: 163.5 },
+  { date: "Jan 20", weight: 162 },
+  { date: "Jan 25", weight: 161 },
+  { date: "Jan 30", weight: 160 },
+];
+
+const sampleMedicationData = [
+  { name: "Lisinopril", dosage: "10mg", schedule: "Daily", adherence: 90 },
+  { name: "Metformin", dosage: "500mg", schedule: "Twice daily", adherence: 85 },
+  { name: "Simvastatin", dosage: "20mg", schedule: "At night", adherence: 95 },
+];
 
 // Define type for health metrics data
 interface BloodPressureData {
@@ -38,27 +72,15 @@ interface MedicationData {
   adherence: number;
 }
 
-// Define type for health metrics from database
-interface HealthMetric {
-  id: string;
-  user_id: string;
-  type: string; 
-  date: string;
-  data: any;
-  created_at: string;
-}
-
 const HealthMetrics = () => {
   const [activeTab, setActiveTab] = useState("bloodPressure");
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const { user } = useAuth();
   
   // State for health metrics data
-  const [bloodPressureData, setBloodPressureData] = useState<BloodPressureData[]>([]);
-  const [bloodSugarData, setBloodSugarData] = useState<BloodSugarData[]>([]);
-  const [weightData, setWeightData] = useState<WeightData[]>([]);
-  const [medicationData, setMedicationData] = useState<MedicationData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [bloodPressureData, setBloodPressureData] = useState<BloodPressureData[]>(sampleBloodPressureData);
+  const [bloodSugarData, setBloodSugarData] = useState<BloodSugarData[]>(sampleBloodSugarData);
+  const [weightData, setWeightData] = useState<WeightData[]>(sampleWeightData);
+  const [medicationData, setMedicationData] = useState<MedicationData[]>(sampleMedicationData);
   
   // Form states
   const [systolic, setSystolic] = useState("");
@@ -75,96 +97,7 @@ const HealthMetrics = () => {
   const [frequency, setFrequency] = useState("");
   const [instructions, setInstructions] = useState("");
 
-  // Load data from Supabase when component mounts
-  useEffect(() => {
-    if (user) {
-      fetchHealthMetrics();
-    }
-  }, [user]);
-
-  const fetchHealthMetrics = async () => {
-    setIsLoading(true);
-    try {
-      if (!user) return;
-      
-      // Fetch blood pressure data
-      const { data: bpData, error: bpError } = await supabase
-        .from("health_metrics")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("type", "blood_pressure")
-        .order("date", { ascending: true });
-        
-      if (bpError) throw bpError;
-      
-      // Process the BP data for the chart
-      const processedBPData = bpData ? bpData.map((item: HealthMetric) => ({
-        date: format(new Date(item.date), 'MMM d'),
-        systolic: item.data.systolic,
-        diastolic: item.data.diastolic
-      })) : [];
-      
-      setBloodPressureData(processedBPData.length ? processedBPData : [
-        { date: "Jan 1", systolic: 120, diastolic: 80 },
-        { date: "Jan 5", systolic: 122, diastolic: 82 },
-        { date: "Jan 10", systolic: 118, diastolic: 79 },
-        { date: "Jan 15", systolic: 121, diastolic: 81 },
-        { date: "Jan 20", systolic: 119, diastolic: 80 },
-        { date: "Jan 25", systolic: 123, diastolic: 83 },
-        { date: "Jan 30", systolic: 120, diastolic: 80 },
-      ]);
-      
-      // Similarly fetch and process other health metrics...
-      // For brevity, we'll use mock data for the other metrics
-      
-      setBloodSugarData([
-        { date: "Jan 1", fasting: 95, afterMeal: 120 },
-        { date: "Jan 5", fasting: 92, afterMeal: 118 },
-        { date: "Jan 10", fasting: 98, afterMeal: 130 },
-        { date: "Jan 15", fasting: 94, afterMeal: 122 },
-        { date: "Jan 20", fasting: 90, afterMeal: 115 },
-        { date: "Jan 25", fasting: 93, afterMeal: 125 },
-        { date: "Jan 30", fasting: 96, afterMeal: 127 },
-      ]);
-      
-      setWeightData([
-        { date: "Jan 1", weight: 165 },
-        { date: "Jan 5", weight: 164 },
-        { date: "Jan 10", weight: 163 },
-        { date: "Jan 15", weight: 163.5 },
-        { date: "Jan 20", weight: 162 },
-        { date: "Jan 25", weight: 161 },
-        { date: "Jan 30", weight: 160 },
-      ]);
-      
-      setMedicationData([
-        { name: "Lisinopril", dosage: "10mg", schedule: "Daily", adherence: 90 },
-        { name: "Metformin", dosage: "500mg", schedule: "Twice daily", adherence: 85 },
-        { name: "Simvastatin", dosage: "20mg", schedule: "At night", adherence: 95 },
-      ]);
-      
-    } catch (error) {
-      console.error("Error fetching health metrics:", error);
-      toast({
-        title: "Error fetching health metrics",
-        description: "Could not load your health data.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleAddReading = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to add health metrics.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     try {
       switch (activeTab) {
         case "bloodPressure":
@@ -177,37 +110,28 @@ const HealthMetrics = () => {
             return;
           }
           
-          const { error: bpError } = await supabase
-            .from("health_metrics")
-            .insert({
-              user_id: user.id,
-              type: 'blood_pressure',
-              date: new Date(date).toISOString(),
-              data: {
-                systolic: parseInt(systolic),
-                diastolic: parseInt(diastolic),
-                notes: notes
-              }
-            });
-            
-          if (bpError) throw bpError;
+          // Add new blood pressure data
+          const newBpData = {
+            date: format(new Date(date), 'MMM d'),
+            systolic: parseInt(systolic),
+            diastolic: parseInt(diastolic)
+          };
+          
+          setBloodPressureData([...bloodPressureData, newBpData]);
           break;
           
         case "bloodSugar":
-          // Insert blood sugar data...
+          // Handle blood sugar data...
           break;
           
         case "weight":
-          // Insert weight data...
+          // Handle weight data...
           break;
           
         case "medications":
-          // Insert medication data...
+          // Handle medication data...
           break;
       }
-      
-      // Refresh data
-      fetchHealthMetrics();
       
       // Reset form
       setSystolic("");
@@ -250,14 +174,6 @@ const HealthMetrics = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8 flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-6 text-center">Health Metrics Dashboard</h1>
@@ -277,9 +193,7 @@ const HealthMetrics = () => {
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>{activeTab === "bloodPressure" ? "Add Blood Pressure Reading" : 
-                              activeTab === "bloodSugar" ? "Add Blood Sugar Reading" : 
-                              activeTab === "weight" ? "Add Weight Reading" : "Add Medication"}</DialogTitle>
+                <DialogTitle>{getDialogTitle()}</DialogTitle>
                 <DialogDescription>
                   Enter your new health data below.
                 </DialogDescription>

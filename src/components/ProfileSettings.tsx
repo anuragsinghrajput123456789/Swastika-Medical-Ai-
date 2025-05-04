@@ -4,13 +4,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function ProfileSettings() {
-  const { user, profile, updateProfile } = useAuth();
-  const [fullName, setFullName] = useState(profile?.full_name || "");
+  const [fullName, setFullName] = useState("Guest User");
   const [avatar, setAvatar] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -19,48 +16,16 @@ export default function ProfileSettings() {
     setIsLoading(true);
 
     try {
-      let avatarUrl = profile?.avatar_url;
-
-      if (avatar) {
-        // Upload the avatar to Supabase storage
-        const fileExt = avatar.name.split('.').pop();
-        const fileName = `${user?.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(filePath, avatar);
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        // Get the public URL
-        const { data } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
-
-        avatarUrl = data.publicUrl;
-      }
-
-      // Update the profile
-      const { error } = await updateProfile({
-        full_name: fullName,
-        avatar_url: avatarUrl,
-        updated_at: new Date(),
-      });
-
-      if (error) {
-        throw error;
-      }
-
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       toast({
         title: "Profile updated successfully",
       });
     } catch (error: any) {
       toast({
         title: "Error updating profile",
-        description: error.message,
+        description: error.message || "Could not update profile",
         variant: "destructive",
       });
     } finally {
@@ -78,9 +43,9 @@ export default function ProfileSettings() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={user?.email || ""} disabled />
+            <Input id="email" type="email" value="guest@example.com" disabled />
             <p className="text-sm text-muted-foreground">
-              Email cannot be changed
+              Authentication has been removed
             </p>
           </div>
           <div className="space-y-2">
@@ -96,17 +61,9 @@ export default function ProfileSettings() {
             <Label htmlFor="avatar">Profile Picture</Label>
             <div className="flex items-center space-x-4">
               <div className="h-16 w-16 rounded-full overflow-hidden bg-muted">
-                {profile?.avatar_url ? (
-                  <img
-                    src={profile.avatar_url}
-                    alt="Profile"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary text-xl">
-                    {profile?.full_name?.[0] || user?.email?.[0] || "U"}
-                  </div>
-                )}
+                <div className="h-full w-full flex items-center justify-center bg-primary/10 text-primary text-xl">
+                  {fullName[0] || "G"}
+                </div>
               </div>
               <Input
                 id="avatar"

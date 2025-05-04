@@ -5,18 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Menu } from "lucide-react";
-import UserMenu from "@/components/auth/UserMenu";
-import { useAuth } from "@/context/AuthContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user } = useAuth();
 
   const navItems = [
     { name: "Home", href: "/" },
     { name: "Chat", href: "/chat" },
     { name: "Symptoms", href: "/symptoms" },
     { name: "Health Metrics", href: "/health-metrics" },
+    { name: "Profile", href: "/profile" },
   ];
 
   return (
@@ -39,25 +37,12 @@ const Navbar = () => {
               </Link>
             ))}
           </nav>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center">
             <ThemeToggle />
-            {user ? (
-              <UserMenu />
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/signin">Sign In</Link>
-                </Button>
-                <Button size="sm" asChild>
-                  <Link to="/signup">Sign Up</Link>
-                </Button>
-              </div>
-            )}
           </div>
         </div>
         <div className="flex flex-1 items-center justify-end space-x-4 md:hidden">
           <ThemeToggle />
-          {user && <UserMenu />}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="md:hidden">
@@ -77,20 +62,6 @@ const Navbar = () => {
                     {item.name}
                   </Link>
                 ))}
-                {!user && (
-                  <div className="grid gap-2 mt-4">
-                    <Button variant="default" asChild>
-                      <Link to="/signin" onClick={() => setIsOpen(false)}>
-                        Sign In
-                      </Link>
-                    </Button>
-                    <Button variant="outline" asChild>
-                      <Link to="/signup" onClick={() => setIsOpen(false)}>
-                        Sign Up
-                      </Link>
-                    </Button>
-                  </div>
-                )}
               </nav>
             </SheetContent>
           </Sheet>
