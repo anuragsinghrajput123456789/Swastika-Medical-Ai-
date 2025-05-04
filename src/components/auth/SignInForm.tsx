@@ -6,22 +6,42 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const { error } = await signIn(email, password);
-    setLoading(false);
     
-    if (!error) {
-      navigate("/health-metrics");
+    if (!email || !password) {
+      setErrorMessage("Please enter both email and password");
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage(null);
+    
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        console.error("Sign in error:", error);
+        setErrorMessage(error.message || "Invalid login credentials. Please check your email and password.");
+      } else {
+        navigate("/health-metrics");
+      }
+    } catch (err: any) {
+      console.error("Unexpected error during sign in:", err);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,6 +53,13 @@ export default function SignInForm() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {errorMessage && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input 
@@ -41,6 +68,7 @@ export default function SignInForm() {
               placeholder="your@email.com" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -56,6 +84,7 @@ export default function SignInForm() {
               type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
