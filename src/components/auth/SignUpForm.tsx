@@ -6,23 +6,59 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { AlertCircle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const { error, user } = await signUp(email, password, fullName);
-    setLoading(false);
     
-    if (!error && user) {
-      navigate("/health-metrics");
+    // Form validation
+    if (!fullName) {
+      setErrorMessage("Please enter your full name");
+      return;
+    }
+    
+    if (!email) {
+      setErrorMessage("Please enter your email address");
+      return;
+    }
+    
+    if (!password) {
+      setErrorMessage("Please enter a password");
+      return;
+    }
+    
+    if (password.length < 8) {
+      setErrorMessage("Password must be at least 8 characters long");
+      return;
+    }
+    
+    setLoading(true);
+    setErrorMessage(null);
+    
+    try {
+      const { error, user } = await signUp(email, password, fullName);
+      
+      if (error) {
+        console.error("Sign up error:", error);
+        setErrorMessage(error.message || "Failed to create account. Please try again.");
+      } else if (user) {
+        navigate("/health-metrics");
+      }
+    } catch (err: any) {
+      console.error("Unexpected error during sign up:", err);
+      setErrorMessage("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -34,6 +70,13 @@ export default function SignUpForm() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {errorMessage && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="space-y-2">
             <Label htmlFor="fullName">Full Name</Label>
             <Input 
@@ -41,6 +84,7 @@ export default function SignUpForm() {
               placeholder="John Doe" 
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -52,6 +96,7 @@ export default function SignUpForm() {
               placeholder="your@email.com" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={loading}
               required
             />
           </div>
@@ -63,6 +108,7 @@ export default function SignUpForm() {
               placeholder="Create a strong password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              disabled={loading}
               required
             />
             <p className="text-xs text-muted-foreground">
@@ -72,7 +118,14 @@ export default function SignUpForm() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Creating Account..." : "Create Account"}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Creating Account...
+              </>
+            ) : (
+              "Create Account"
+            )}
           </Button>
           <div className="text-sm text-center text-muted-foreground">
             Already have an account?{" "}

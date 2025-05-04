@@ -1,5 +1,5 @@
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 
 interface ProtectedRouteProps {
@@ -8,6 +8,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
   
   if (isLoading) {
     // Show loading state
@@ -19,7 +20,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
   
   if (!user) {
-    return <Navigate to="/signin" />;
+    // Redirect to signin and remember where they were trying to go
+    return <Navigate to="/signin" state={{ from: location.pathname }} />;
   }
   
   return <>{children}</>;

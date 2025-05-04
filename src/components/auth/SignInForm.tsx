@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SignInForm() {
@@ -20,8 +20,14 @@ export default function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      setErrorMessage("Please enter both email and password");
+    // Form validation
+    if (!email) {
+      setErrorMessage("Please enter your email address");
+      return;
+    }
+    
+    if (!password) {
+      setErrorMessage("Please enter your password");
       return;
     }
 
@@ -91,7 +97,14 @@ export default function SignInForm() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              "Sign In"
+            )}
           </Button>
           <div className="text-sm text-center text-muted-foreground">
             Don't have an account?{" "}
