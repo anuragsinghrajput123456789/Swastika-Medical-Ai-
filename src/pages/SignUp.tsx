@@ -1,19 +1,9 @@
 
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
 import SignUpForm from "@/components/auth/SignUpForm";
 
 const SignUp = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-
-  // Redirect if already authenticated
-  useEffect(() => {
-    if (user) {
-      navigate("/health-metrics");
-    }
-  }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">

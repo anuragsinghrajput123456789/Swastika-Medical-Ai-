@@ -1,144 +1,41 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, Loader2 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/hooks/use-toast";
 
 export default function SignUpForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Form validation
-    if (!fullName) {
-      setErrorMessage("Please enter your full name");
-      return;
-    }
-    
-    if (!email) {
-      setErrorMessage("Please enter your email address");
-      return;
-    }
-    
-    if (!password) {
-      setErrorMessage("Please enter a password");
-      return;
-    }
-    
-    if (password.length < 8) {
-      setErrorMessage("Password must be at least 8 characters long");
-      return;
-    }
-    
-    setLoading(true);
-    setErrorMessage(null);
-    
-    try {
-      const { error, user } = await signUp(email, password, fullName);
-      
-      if (error) {
-        console.error("Sign up error:", error);
-        setErrorMessage(error.message || "Failed to create account. Please try again.");
-      } else if (user) {
-        navigate("/health-metrics");
-      }
-    } catch (err: any) {
-      console.error("Unexpected error during sign up:", err);
-      setErrorMessage("An unexpected error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    toast({
+      title: "Guest access enabled",
+      description: "All features are now available without signing in.",
+    });
+    navigate("/health-metrics");
   };
 
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
-        <CardTitle>Create an Account</CardTitle>
-        <CardDescription>Fill out the form below to create your account</CardDescription>
+        <CardTitle>Welcome to MediChat</CardTitle>
+        <CardDescription>All features are now available without signing in</CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
-          {errorMessage && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{errorMessage}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Full Name</Label>
-            <Input 
-              id="fullName" 
-              placeholder="John Doe" 
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email" 
-              type="email" 
-              placeholder="your@email.com" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={loading}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input 
-              id="password" 
-              type="password"
-              placeholder="Create a strong password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-            <p className="text-xs text-muted-foreground">
-              Password must be at least 8 characters long
-            </p>
-          </div>
+          <p className="text-center text-muted-foreground">
+            Authentication has been removed for easier access.
+            You can use all features as a guest user.
+          </p>
         </CardContent>
         <CardFooter className="flex flex-col space-y-2">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating Account...
-              </>
-            ) : (
-              "Create Account"
-            )}
+          <Button type="submit" className="w-full">
+            Continue as Guest
           </Button>
           <div className="text-sm text-center text-muted-foreground">
-            Already have an account?{" "}
-            <a 
-              href="/signin" 
-              className="text-primary hover:underline"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/signin");
-              }}
-            >
-              Sign in
-            </a>
+            Click the button above to access all features
           </div>
         </CardFooter>
       </form>

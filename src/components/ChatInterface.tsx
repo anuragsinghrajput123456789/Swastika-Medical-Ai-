@@ -4,10 +4,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthContext";
 import ApiKeyInput from "./ApiKeyInput";
+import { sendMessageToGemini } from "@/services/geminiService";
 
 interface Message {
   id?: string;
@@ -31,64 +31,19 @@ const ChatInterface = () => {
       setApiKey(savedApiKey);
     }
 
-    // Load chat history from Supabase if user is logged in
-    if (user) {
-      loadChatHistory();
-    }
-  }, [user]);
+    // Set welcome message
+    setMessages([
+      {
+        role: "assistant",
+        content: "Hello! I'm your medical assistant. How can I help you today?",
+        timestamp: new Date()
+      }
+    ]);
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const loadChatHistory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('chat_history')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: true })
-        .limit(50);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const formattedMessages: Message[] = [];
-        data.forEach(item => {
-          formattedMessages.push({
-            id: item.id,
-            role: "user",
-            content: item.message,
-            timestamp: new Date(item.created_at)
-          });
-          
-          formattedMessages.push({
-            role: "assistant",
-            content: item.response,
-            timestamp: new Date(item.created_at)
-          });
-        });
-        
-        setMessages(formattedMessages);
-      } else {
-        // Set welcome message if no history
-        setMessages([
-          {
-            role: "assistant",
-            content: "Hello! I'm your medical assistant. How can I help you today?",
-            timestamp: new Date()
-          }
-        ]);
-      }
-    } catch (error) {
-      console.error("Error loading chat history:", error);
-      toast({
-        title: "Error loading chat history",
-        description: "Could not load your previous conversations.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,10 +52,10 @@ const ChatInterface = () => {
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return;
     
-    if (!user) {
+    if (!apiKey) {
       toast({
-        title: "Authentication required",
-        description: "Please sign in to use the chat feature.",
+        title: "API key required",
+        description: "Please add your Gemini API key to use the chat feature.",
         variant: "destructive",
       });
       return;
@@ -117,35 +72,16 @@ const ChatInterface = () => {
     setIsLoading(true);
 
     try {
-      // Format history for the Gemini API
-      const history = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-
-      // Call the edge function
-      const { data, error } = await supabase.functions.invoke('gemini-chat', {
-        body: { message: inputMessage, history },
-      });
-
-      if (error) throw error;
-
+      // Call the Gemini API
+      const response = await sendMessageToGemini(apiKey, inputMessage);
+      
       const assistantMessage: Message = {
         role: "assistant",
-        content: data.response,
+        content: response,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-
-      // Save the conversation to Supabase
-      await supabase
-        .from('chat_history')
-        .insert({
-          user_id: user.id,
-          message: inputMessage,
-          response: data.response
-        });
 
     } catch (error) {
       console.error("Error sending message:", error);
@@ -175,7 +111,7 @@ const ChatInterface = () => {
     }
   };
 
-  if (!apiKey && !process.env.GEMINI_API_KEY) {
+  if (!apiKey) {
     return <ApiKeyInput onApiKeySubmit={setApiKey} />;
   }
 
@@ -208,7 +144,7 @@ const ChatInterface = () => {
                 ) : (
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={null} />
-                    <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
+                    <AvatarFallback>{user?.email?.[0].toUpperCase() || 'G'}</AvatarFallback>
                   </Avatar>
                 )}
 
@@ -281,6 +217,6 @@ const ChatInterface = () => {
       </CardFooter>
     </Card>
   );
-};
+}
 
 export default ChatInterface;
