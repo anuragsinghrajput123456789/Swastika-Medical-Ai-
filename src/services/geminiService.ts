@@ -3,13 +3,14 @@
 
 // Define the response structure from Gemini API
 interface GeminiResponse {
-  candidates: {
+  candidates?: {
     content: {
       parts: {
         text: string;
       }[];
     };
   }[];
+  text?: string;
   promptFeedback?: any;
 }
 
@@ -21,7 +22,8 @@ export const sendMessageToGemini = async (apiKey: string, message: string): Prom
     // Medical-specific system prompt
     const systemPrompt = "You are a helpful medical assistant AI. Provide accurate, ethical medical information. Always clarify you're not a doctor and serious concerns require professional medical consultation. Focus on general health education, preventive care, and understanding medical concepts.";
     
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + apiKey, {
+    // First try using the updated Gemini API endpoint
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -76,7 +78,7 @@ export const sendMessageToGemini = async (apiKey: string, message: string): Prom
 
     const data: GeminiResponse = await response.json();
     
-    // Extract the response text
+    // Extract the response text from the updated API format
     if (data.candidates && data.candidates[0]?.content?.parts[0]?.text) {
       return data.candidates[0].content.parts[0].text;
     } else {

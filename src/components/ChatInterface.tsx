@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/sonner";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useAuth } from "@/context/AuthContext";
 import ApiKeyInput from "./ApiKeyInput";
 import { sendMessageToGemini } from "@/services/geminiService";
@@ -21,6 +22,7 @@ const ChatInterface = () => {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
@@ -53,10 +55,8 @@ const ChatInterface = () => {
     if (!inputMessage.trim()) return;
     
     if (!apiKey) {
-      toast({
-        title: "API key required",
-        description: "Please add your Gemini API key to use the chat feature.",
-        variant: "destructive",
+      toast.error("API key required", {
+        description: "Please add your Gemini API key to use the chat feature."
       });
       return;
     }
@@ -70,6 +70,7 @@ const ChatInterface = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
     setIsLoading(true);
+    setError(null); // Clear any previous errors
 
     try {
       // Call the Gemini API
@@ -83,22 +84,17 @@ const ChatInterface = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
-      toast({
-        title: "Error sending message",
-        description: "Could not get a response from the assistant.",
-        variant: "destructive",
+      
+      setError(
+        "I'm having trouble connecting to the AI service. This could be due to an invalid API key or a temporary service outage. Please check your API key and try again."
+      );
+      
+      // Also show a toast for immediate feedback
+      toast.error("Error connecting to AI service", {
+        description: "Please check your API key or try again later."
       });
-
-      setMessages(prev => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "I'm sorry, I encountered an error processing your request. Please try again later.",
-          timestamp: new Date()
-        }
-      ]);
     } finally {
       setIsLoading(false);
     }
@@ -109,6 +105,11 @@ const ChatInterface = () => {
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleChangeApiKey = () => {
+    localStorage.removeItem("gemini-api-key");
+    setApiKey(null);
   };
 
   if (!apiKey) {
@@ -122,8 +123,22 @@ const ChatInterface = () => {
         <CardDescription>
           Ask questions about symptoms, treatments, and general health information
         </CardDescription>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleChangeApiKey}
+          className="absolute top-4 right-4"
+        >
+          Change API Key
+        </Button>
       </CardHeader>
       <CardContent className="p-4 h-[500px] overflow-y-auto">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Connection Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         <div className="space-y-4">
           {messages.map((message, index) => (
             <div
@@ -144,7 +159,7 @@ const ChatInterface = () => {
                 ) : (
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={null} />
-                    <AvatarFallback>{user?.email?.[0].toUpperCase() || 'G'}</AvatarFallback>
+                    <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>
                 )}
 

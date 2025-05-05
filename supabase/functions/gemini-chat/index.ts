@@ -27,25 +27,29 @@ serve(async (req) => {
 
     const { message, history = [] } = await req.json();
 
-    // Initialize the Gemini API
+    // Initialize the Gemini API with the correct model name
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Updated model name
 
-    // Create a chat session
-    const chat = model.startChat({
-      history: history.map((item: any) => ({
-        role: item.role,
-        parts: [{ text: item.content }],
-      })),
+    // Create conversation history in the correct format for the API
+    const chatHistory = history.map((item: any) => ({
+      role: item.role === "user" ? "user" : "model", // API expects "model" not "assistant"
+      parts: [{ text: item.content }],
+    }));
+
+    // Generate content using the generative model directly
+    const result = await model.generateContent({
+      contents: [
+        ...chatHistory,
+        { role: "user", parts: [{ text: message }] }
+      ],
       generationConfig: {
         maxOutputTokens: 1000,
         temperature: 0.7,
       },
     });
 
-    // Send the message
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
+    const response = result.response;
     const text = response.text();
 
     return new Response(
