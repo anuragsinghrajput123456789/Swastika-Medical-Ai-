@@ -18,6 +18,7 @@ import AppointmentScheduling from "./symptom-checker/AppointmentScheduling";
 import LifestyleTips from "./symptom-checker/LifestyleTips";
 import EmergencyResponse from "./symptom-checker/EmergencyResponse";
 import HealthEducation from "./symptom-checker/HealthEducation";
+import GeneralHealthEducation from "./symptom-checker/GeneralHealthEducation";
 
 const SymptomChecker = () => {
   const [activeTab, setActiveTab] = useState("symptoms");
@@ -67,14 +68,15 @@ const SymptomChecker = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-3 md:grid-cols-7 gap-1">
+            <TabsList className="grid grid-cols-4 md:grid-cols-8 gap-1">
               <TabsTrigger value="symptoms">Symptoms</TabsTrigger>
               <TabsTrigger value="triage">Triage</TabsTrigger>
               <TabsTrigger value="medication">Medication</TabsTrigger>
               <TabsTrigger value="records">Records</TabsTrigger>
               <TabsTrigger value="appointments">Appointments</TabsTrigger>
               <TabsTrigger value="emergency">Emergency</TabsTrigger>
-              <TabsTrigger value="education">Education</TabsTrigger>
+              <TabsTrigger value="education">Resources</TabsTrigger>
+              <TabsTrigger value="general-education">Health Basics</TabsTrigger>
             </TabsList>
           </div>
           
@@ -120,6 +122,10 @@ const SymptomChecker = () => {
           
           <TabsContent value="education">
             <HealthEducation />
+          </TabsContent>
+          
+          <TabsContent value="general-education">
+            <GeneralHealthEducation />
           </TabsContent>
         </Tabs>
       </div>
