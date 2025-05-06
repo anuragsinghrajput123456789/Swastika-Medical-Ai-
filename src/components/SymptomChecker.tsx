@@ -6,6 +6,16 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+
+// Import our new components
+import MedicalTriage from "./symptom-checker/MedicalTriage";
+import MedicationInfo from "./symptom-checker/MedicationInfo";
+import HealthRecordSummary from "./symptom-checker/HealthRecordSummary";
+import AppointmentScheduling from "./symptom-checker/AppointmentScheduling";
+import LifestyleTips from "./symptom-checker/LifestyleTips";
+import EmergencyResponse from "./symptom-checker/EmergencyResponse";
+import HealthEducation from "./symptom-checker/HealthEducation";
 
 // Mock symptom data
 const commonSymptoms = [
@@ -48,6 +58,7 @@ const mockDiagnosis = {
 };
 
 const SymptomChecker = () => {
+  const [activeTab, setActiveTab] = useState("symptoms");
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [showResults, setShowResults] = useState(false);
@@ -76,6 +87,7 @@ const SymptomChecker = () => {
     
     setDiagnosis(result);
     setShowResults(true);
+    setActiveTab("symptoms");
   };
 
   const resetChecker = () => {
@@ -87,11 +99,11 @@ const SymptomChecker = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold mb-2">Symptom Checker</h1>
+          <h1 className="text-3xl font-bold mb-2">Health Assistant</h1>
           <p className="text-muted-foreground">
-            Select your symptoms below to receive an initial assessment.
+            Get insights about your health, manage appointments, and access medical resources.
             <br />
             <span className="text-sm font-medium text-destructive">
               Note: This is not a substitute for professional medical advice.
@@ -99,97 +111,147 @@ const SymptomChecker = () => {
           </p>
         </div>
 
-        {!showResults ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Select Your Symptoms</CardTitle>
-              <CardDescription>
-                Check all symptoms you're currently experiencing
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {commonSymptoms.map((symptom) => (
-                  <div key={symptom.id} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={symptom.id} 
-                      checked={selectedSymptoms.includes(symptom.id)}
-                      onCheckedChange={() => handleSymptomToggle(symptom.id)}
-                    />
-                    <Label htmlFor={symptom.id}>{symptom.label}</Label>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8">
-                <Label htmlFor="additional-info">Additional Information</Label>
-                <Textarea
-                  id="additional-info"
-                  placeholder="Describe when symptoms started, any recent events, or other relevant information..."
-                  className="mt-2"
-                  value={additionalInfo}
-                  onChange={(e) => setAdditionalInfo(e.target.value)}
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={analyzeSymptomsHandler} 
-                disabled={selectedSymptoms.length === 0}
-              >
-                Analyze Symptoms
-              </Button>
-            </CardFooter>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle>Symptom Analysis</CardTitle>
-              <CardDescription>
-                Based on the symptoms you selected:
-                {selectedSymptoms.map((id) => (
-                  <span key={id} className="inline-block bg-primary/10 text-primary rounded-full px-2 py-1 text-xs mr-1 mt-1">
-                    {commonSymptoms.find(s => s.id === id)?.label}
-                  </span>
-                ))}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Possible Conditions</h3>
-                  <ul className="list-disc pl-5">
-                    {diagnosis.possibleConditions.map((condition: string, index: number) => (
-                      <li key={index}>{condition}</li>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <div className="flex justify-center mb-6">
+            <TabsList className="grid grid-cols-3 md:grid-cols-7 gap-1">
+              <TabsTrigger value="symptoms">Symptoms</TabsTrigger>
+              <TabsTrigger value="triage">Triage</TabsTrigger>
+              <TabsTrigger value="medication">Medication</TabsTrigger>
+              <TabsTrigger value="records">Records</TabsTrigger>
+              <TabsTrigger value="appointments">Appointments</TabsTrigger>
+              <TabsTrigger value="emergency">Emergency</TabsTrigger>
+              <TabsTrigger value="education">Education</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="symptoms">
+            {!showResults ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Symptom Checker</CardTitle>
+                  <CardDescription>
+                    Select all symptoms you're currently experiencing
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {commonSymptoms.map((symptom) => (
+                      <div key={symptom.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={symptom.id} 
+                          checked={selectedSymptoms.includes(symptom.id)}
+                          onCheckedChange={() => handleSymptomToggle(symptom.id)}
+                        />
+                        <Label htmlFor={symptom.id}>{symptom.label}</Label>
+                      </div>
                     ))}
-                  </ul>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Note: These are possible conditions based on your symptoms and not a definitive diagnosis.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Recommendations</h3>
-                  <div className={`p-4 rounded-md ${
-                    diagnosis.urgencyLevel === "high" ? "bg-destructive/10 text-destructive" :
-                    diagnosis.urgencyLevel === "medium" ? "bg-amber-500/10 text-amber-600" :
-                    "bg-green-500/10 text-green-600"
-                  }`}>
-                    {diagnosis.recommendations}
                   </div>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={resetChecker}>
-                Check Different Symptoms
-              </Button>
-              <Button>
-                Find Healthcare Provider
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
+
+                  <div className="mt-8">
+                    <Label htmlFor="additional-info">Additional Information</Label>
+                    <Textarea
+                      id="additional-info"
+                      placeholder="Describe when symptoms started, any recent events, or other relevant information..."
+                      className="mt-2"
+                      value={additionalInfo}
+                      onChange={(e) => setAdditionalInfo(e.target.value)}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    onClick={analyzeSymptomsHandler} 
+                    disabled={selectedSymptoms.length === 0}
+                  >
+                    Analyze Symptoms
+                  </Button>
+                </CardFooter>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Symptom Analysis</CardTitle>
+                  <CardDescription>
+                    Based on the symptoms you selected:
+                    {selectedSymptoms.map((id) => (
+                      <span key={id} className="inline-block bg-primary/10 text-primary rounded-full px-2 py-1 text-xs mr-1 mt-1">
+                        {commonSymptoms.find(s => s.id === id)?.label}
+                      </span>
+                    ))}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Possible Conditions</h3>
+                      <ul className="list-disc pl-5">
+                        {diagnosis.possibleConditions.map((condition: string, index: number) => (
+                          <li key={index}>{condition}</li>
+                        ))}
+                      </ul>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Note: These are possible conditions based on your symptoms and not a definitive diagnosis.
+                      </p>
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-medium mb-2">Recommendations</h3>
+                      <div className={`p-4 rounded-md ${
+                        diagnosis.urgencyLevel === "high" ? "bg-destructive/10 text-destructive" :
+                        diagnosis.urgencyLevel === "medium" ? "bg-amber-500/10 text-amber-600" :
+                        "bg-green-500/10 text-green-600"
+                      }`}>
+                        {diagnosis.recommendations}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Button onClick={() => setActiveTab("triage")} variant="outline" size="sm" className="mr-2">
+                        Get Triage Assessment
+                      </Button>
+                      <Button onClick={() => setActiveTab("appointments")} variant="outline" size="sm">
+                        Schedule Appointment
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={resetChecker}>
+                    Check Different Symptoms
+                  </Button>
+                  <Button>
+                    Find Healthcare Provider
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="triage">
+            <MedicalTriage />
+            <LifestyleTips />
+          </TabsContent>
+          
+          <TabsContent value="medication">
+            <MedicationInfo />
+          </TabsContent>
+          
+          <TabsContent value="records">
+            <HealthRecordSummary />
+          </TabsContent>
+          
+          <TabsContent value="appointments">
+            <AppointmentScheduling />
+          </TabsContent>
+          
+          <TabsContent value="emergency">
+            <EmergencyResponse />
+          </TabsContent>
+          
+          <TabsContent value="education">
+            <HealthEducation />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Emergency Dialog */}
