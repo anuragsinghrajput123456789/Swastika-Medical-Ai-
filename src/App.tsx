@@ -16,8 +16,6 @@ import Profile from "./pages/Profile";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
-import SignUp from "./pages/SignUp";
-import SignIn from "./pages/SignIn";
 
 const queryClient = new QueryClient();
 
@@ -33,27 +31,17 @@ const App = () => (
                 <main className="flex-1">
                   <Routes>
                     <Route path="/" element={<Index />} />
-                    <Route path="/sign-up" element={<SignUp />} />
-                    <Route path="/sign-in" element={<SignIn />} />
                     <Route path="/chat" element={
-                      <ProtectedRoute>
-                        <Chat />
-                      </ProtectedRoute>
+                      <Chat />
                     } />
                     <Route path="/symptoms" element={
-                      <ProtectedRoute>
-                        <Symptoms />
-                      </ProtectedRoute>
+                      <Symptoms />
                     } />
                     <Route path="/health-metrics" element={
-                      <ProtectedRoute>
-                        <HealthMetricsPage />
-                      </ProtectedRoute>
+                      <HealthMetricsPage />
                     } />
                     <Route path="/profile" element={
-                      <ProtectedRoute>
-                        <Profile />
-                      </ProtectedRoute>
+                      <Profile />
                     } />
                     <Route path="*" element={<NotFound />} />
                   </Routes>

@@ -1,20 +1,17 @@
 
 import * as React from "react";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import SignInForm from "@/components/auth/SignInForm";
-import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SignIn = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  useEffect(() => {
-    if (user) {
-      navigate("/health-metrics");
-    }
-  }, [user, navigate]);
+
+  React.useEffect(() => {
+    // Redirect to home page since authentication is removed
+    navigate("/");
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -24,8 +21,20 @@ const SignIn = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <h1 className="text-3xl font-bold text-center mb-8">MediChat</h1>
-        <SignInForm />
+        <Card>
+          <CardHeader>
+            <CardTitle>Authentication Removed</CardTitle>
+            <CardDescription>User authentication has been removed from this application.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>You will be redirected to the home page.</p>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => navigate("/")} className="w-full">
+              Go to Home Page
+            </Button>
+          </CardFooter>
+        </Card>
       </motion.div>
     </div>
   );
