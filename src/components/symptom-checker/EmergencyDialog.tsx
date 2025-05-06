@@ -1,6 +1,14 @@
 
+import * as React from "react";
 import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "../ui/dialog";
 
 interface EmergencyDialogProps {
   open: boolean;
