@@ -1,4 +1,3 @@
-
 // This component is quite large, so we'll update only the key parts
 // adding animation and interactivity features
 import { useState, useEffect, useRef } from "react";
@@ -56,8 +55,10 @@ const ChatInterface = () => {
 
     // Set up speech recognition if available
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+      const SpeechRecognitionClass: typeof SpeechRecognition = 
+        window.SpeechRecognition || window.webkitSpeechRecognition;
+      
+      const recognition = new SpeechRecognitionClass();
       recognition.continuous = false;
       recognition.interimResults = true;
       
