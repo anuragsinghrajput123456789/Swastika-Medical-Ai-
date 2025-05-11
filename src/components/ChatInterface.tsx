@@ -1,396 +1,182 @@
-// This component is quite large, so we'll update only the key parts
-// adding animation and interactivity features
-import { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { toast } from "@/components/ui/sonner";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { useAuth } from "@/context/AuthContext";
-import ApiKeyInput from "./ApiKeyInput";
-import { sendMessageToGemini } from "@/services/geminiService";
-import { Send, Mic, StopCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState, useRef, useEffect } from "react";
+import {
+  FaHeartbeat,
+  FaCapsules,
+  FaUserMd,
+  FaStethoscope,
+} from "react-icons/fa";
+import { IoSend, IoSparklesSharp } from "react-icons/io5";
+import { TbVaccine } from "react-icons/tb";
+import { GiBodyBalance } from "react-icons/gi";
+import { GoogleGenAI } from "@google/genai";
 
-interface Message {
-  id?: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp?: Date;
-}
+const MedicalChatInterface = () => {
+  const [message, setMessage] = useState("");
+  const [isResponse, setIsResponse] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const messagesEndRef = useRef(null);
 
-const ChatInterface = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { user } = useAuth();
-  const [isListening, setIsListening] = useState(false);
-  const [speechRecognition, setSpeechRecognition] = useState<SpeechRecognition | null>(null);
-
-  useEffect(() => {
-    // Check if API key is saved in localStorage
-    const savedApiKey = localStorage.getItem("gemini-api-key");
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    }
-
-    // Set welcome message
-    setMessages([
-      {
-        role: "assistant",
-        content: "Hello! I'm your medical assistant. How can I help you today?",
-        timestamp: new Date()
-      }
-    ]);
-
-    // Load chat history if user is authenticated
-    if (user) {
-      loadChatHistory();
-    }
-
-    // Set up speech recognition if available
-    if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
-      const SpeechRecognitionClass: typeof SpeechRecognition = 
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      
-      const recognition = new SpeechRecognitionClass();
-      recognition.continuous = false;
-      recognition.interimResults = true;
-      
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0])
-          .map(result => result.transcript)
-          .join('');
-        
-        setInputMessage(transcript);
-      };
-      
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-      
-      setSpeechRecognition(recognition);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const loadChatHistory = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('chat_history')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true })
-        .limit(20);
-      
-      if (error) {
-        console.error('Error loading chat history:', error);
-        return;
-      }
-      
-      if (data && data.length > 0) {
-        const loadedMessages: Message[] = [];
-        
-        data.forEach(item => {
-          // Add user message
-          loadedMessages.push({
-            id: item.id,
-            role: 'user',
-            content: item.message,
-            timestamp: new Date(item.created_at)
-          });
-          
-          // Add assistant response
-          loadedMessages.push({
-            id: item.id,
-            role: 'assistant',
-            content: item.response,
-            timestamp: new Date(item.created_at)
-          });
-        });
-        
-        setMessages(prev => [prev[0], ...loadedMessages]); // Keep welcome message
-      }
-    } catch (error) {
-      console.error('Error in loadChatHistory:', error);
-    }
-  };
+  const ai = new GoogleGenAI({
+    apiKey: "AIzaSyCQ0hm-7AiEGcVI0LeqVoKZB0-q7viWk90",
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const saveChatToHistory = async (message: string, response: string) => {
-    if (!user) return;
-    
-    try {
-      const { error } = await supabase
-        .from('chat_history')
-        .insert({
-          user_id: user.id,
-          message: message,
-          response: response,
-        });
-        
-      if (error) {
-        console.error('Error saving chat history:', error);
-      }
-    } catch (error) {
-      console.error('Error in saveChatToHistory:', error);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const hitRequest = () => {
+    if (message.trim()) {
+      generateResponse(message);
+    } else {
+      alert("Please enter a symptom or question...");
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim()) return;
-    
-    if (!apiKey) {
-      toast.error("API key required", {
-        description: "Please add your Gemini API key to use the chat feature."
-      });
-      return;
-    }
-
-    const userMessage: Message = {
-      role: "user",
-      content: inputMessage,
-      timestamp: new Date()
+  async function generateResponse(msg) {
+    const userMessage = { type: "user", text: msg };
+    const typingIndicator = {
+      type: "bot",
+      text: "Thinking...",
+      isLoading: true,
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage("");
-    setIsLoading(true);
-    setError(null); // Clear any previous errors
+    setMessages((prev) => [...prev, userMessage, typingIndicator]);
+    setMessage("");
 
     try {
-      // Call the Gemini API
-      const response = await sendMessageToGemini(apiKey, inputMessage);
-      
-      const assistantMessage: Message = {
-        role: "assistant",
-        content: response,
-        timestamp: new Date()
-      };
+      const response = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: msg,
+      });
 
-      setMessages(prev => [...prev, assistantMessage]);
-
-      // Save to chat history if user is authenticated
-      if (user) {
-        saveChatToHistory(inputMessage, response);
-      }
-
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      
-      setError(
-        "I'm having trouble connecting to the AI service. This could be due to an invalid API key or a temporary service outage. Please check your API key and try again."
+      setMessages((prev) =>
+        prev
+          .filter((msg) => !msg.isLoading)
+          .concat({ type: "bot", text: response.text })
       );
-      
-      // Also show a toast for immediate feedback
-      toast.error("Error connecting to AI service", {
-        description: "Please check your API key or try again later."
-      });
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching response:", error);
+      setMessages((prev) =>
+        prev
+          .filter((msg) => !msg.isLoading)
+          .concat({
+            type: "bot",
+            text: "Oops! Something went wrong. Please try again.",
+          })
+      );
     }
-  };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
-  const handleChangeApiKey = () => {
-    localStorage.removeItem("gemini-api-key");
-    setApiKey(null);
-  };
-  
-  const toggleSpeechRecognition = () => {
-    if (!speechRecognition) {
-      toast.error("Speech recognition is not supported in your browser");
-      return;
-    }
-    
-    if (isListening) {
-      speechRecognition.stop();
-      setIsListening(false);
-    } else {
-      speechRecognition.start();
-      setIsListening(true);
-      toast.info("Listening...", {
-        description: "Speak clearly into your microphone"
-      });
-    }
-  };
-
-  if (!apiKey) {
-    return <ApiKeyInput onApiKeySubmit={setApiKey} />;
+    setIsResponse(true);
   }
 
+  // Example Medical Questions
+  const quickQuestions = [
+    {
+      icon: <FaStethoscope className="text-blue-500 text-2xl" />,
+      text: "I have chest pain. What should I do?",
+    },
+    {
+      icon: <FaHeartbeat className="text-red-500 text-2xl" />,
+      text: "My heart is racing. Is this serious?",
+    },
+    {
+      icon: <TbVaccine className="text-green-500 text-2xl" />,
+      text: "When should I get my next vaccine shot?",
+    },
+    {
+      icon: <GiBodyBalance className="text-purple-500 text-2xl" />,
+      text: "How can I improve my mental health?",
+    },
+    {
+      icon: <FaCapsules className="text-yellow-500 text-2xl" />,
+      text: "What medications are safe during pregnancy?",
+    },
+    {
+      icon: <FaUserMd className="text-pink-500 text-2xl" />,
+      text: "Should I see a specialist for my back pain?",
+    },
+  ];
+
   return (
-    <Card className="w-full max-w-4xl mx-auto my-8 shadow-lg">
-      <CardHeader>
-        <CardTitle>Medical Assistant</CardTitle>
-        <CardDescription>
-          Ask questions about symptoms, treatments, and general health information
-        </CardDescription>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleChangeApiKey}
-          className="absolute top-4 right-4"
-        >
-          Change API Key
-        </Button>
-      </CardHeader>
-      <CardContent className="p-4 h-[500px] overflow-y-auto">
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTitle>Connection Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        <div className="space-y-4">
-          <AnimatePresence>
-            {messages.map((message, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${
-                  message.role === "assistant" ? "justify-start" : "justify-end"
-                }`}
-              >
-                <div
-                  className={`flex gap-3 max-w-[80%] ${
-                    message.role === "assistant" ? "" : "flex-row-reverse"
-                  }`}
-                >
-                  {message.role === "assistant" ? (
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary/10 text-primary">AI</AvatarFallback>
-                    </Avatar>
-                  ) : (
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={null} />
-                      <AvatarFallback>{user?.email?.[0].toUpperCase() || 'U'}</AvatarFallback>
-                    </Avatar>
-                  )}
-
-                  <motion.div
-                    initial={{ scale: 0.95 }}
-                    animate={{ scale: 1 }}
-                    className={`rounded-lg p-3 ${
-                      message.role === "assistant"
-                        ? "bg-muted"
-                        : "bg-primary text-primary-foreground"
-                    }`}
-                  >
-                    <div className="whitespace-pre-wrap">{message.content}</div>
-                    {message.timestamp && (
-                      <div
-                        className={`text-xs mt-1 ${
-                          message.role === "assistant"
-                            ? "text-muted-foreground"
-                            : "text-primary-foreground/70"
-                        }`}
-                      >
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-          
-          {isLoading && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-start"
-            >
-              <div className="flex gap-3 max-w-[80%]">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary/10 text-primary">AI</AvatarFallback>
-                </Avatar>
-                <div className="rounded-lg p-3 bg-muted">
-                  <div className="flex items-center space-x-2">
-                    <motion.div 
-                      className="h-2 w-2 rounded-full bg-current"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ repeat: Infinity, duration: 1 }}
-                    />
-                    <motion.div 
-                      className="h-2 w-2 rounded-full bg-current"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
-                    />
-                    <motion.div 
-                      className="h-2 w-2 rounded-full bg-current"
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-      </CardContent>
-      <CardFooter className="border-t p-4">
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendMessage();
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-gray-900 to-black text-white flex flex-col">
+      {/* Header */}
+      <header className="p-6 flex justify-between items-center border-b border-gray-700 shadow-lg">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <IoSparklesSharp className="animate-pulse" />
+          Swastha-AI Assistant
+        </h1>
+        <button
+          onClick={() => {
+            setMessages([]);
+            setIsResponse(false);
           }}
-          className="flex w-full items-center space-x-2"
+          className="bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition"
         >
-          <Input
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={handleKeyPress}
-            placeholder="Type your message..."
-            className="flex-1"
-            disabled={isLoading}
-          />
-          {speechRecognition && (
-            <Button 
-              type="button" 
-              variant="secondary" 
-              size="icon"
-              onClick={toggleSpeechRecognition}
-              className={isListening ? "bg-red-500 hover:bg-red-600 text-white" : ""}
-            >
-              {isListening ? <StopCircle className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-            </Button>
-          )}
-          <Button type="submit" disabled={isLoading || !inputMessage.trim()}>
-            {isLoading ? (
-              <div className="h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
-        </form>
-      </CardFooter>
-    </Card>
-  );
-}
+          New Chat
+        </button>
+      </header>
 
-export default ChatInterface;
+      {/* Main Content */}
+      {!isResponse ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <h1 className="text-5xl font-extrabold mb-10 text-center">
+            Swastha-AI
+          </h1>
+          <p className="text-lg text-center max-w-xl mb-12 text-gray-300">
+            Ask any medical question or describe your symptoms. Our AI will help
+            you understand your condition.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl animate-fadeIn">
+            {quickQuestions.map((item, idx) => (
+              <div
+                key={idx}
+                onClick={() => {
+                  setMessage(item.text);
+                  setTimeout(hitRequest, 100);
+                }}
+                className="bg-gray-800 p-5 rounded-xl shadow-lg hover:shadow-blue-500/30 cursor-pointer transition-all duration-300 transform hover:scale-105 flex items-start gap-3 border border-gray-700"
+              >
+                <div>{item.icon}</div>
+                <p className="text-sm md:text-base">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          {messages.map((msg, index) => (
+            <div
+              key={index}
+              className={`max-w-3xl mx-auto p-4 rounded-lg transition-opacity duration-300 ${
+                msg.type === "user"
+                  ? "bg-blue-600 ml-auto"
+                  : "bg-gray-800 mr-auto"
+              }`}
+            >
+              {msg.isLoading ? (
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-white animate-bounce"></span>
+                  <span className="w-2 h-2 rounded-full bg-white animate-bounce delay-150"></span>
+                  <span className="w-2 h-2 rounded-full bg-white animate-bounce delay-300"></span>
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap">{msg.text}</p>
+              )}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </main>
+      )}
+
+      {/* Input Box */}
+     
+    </div>
+  );
+};
+
+export default MedicalChatInterface;

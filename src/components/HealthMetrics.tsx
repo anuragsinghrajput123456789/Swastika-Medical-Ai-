@@ -101,7 +101,7 @@ const HealthMetrics = () => {
     try {
       switch (activeTab) {
         case "bloodPressure":
-          if (!systolic || !diastolic) {
+          { if (!systolic || !diastolic) {
             toast({
               title: "Missing information",
               description: "Please fill in all required fields.",
@@ -118,7 +118,7 @@ const HealthMetrics = () => {
           };
           
           setBloodPressureData([...bloodPressureData, newBpData]);
-          break;
+          break; }
           
         case "bloodSugar":
           // Handle blood sugar data...
@@ -250,7 +250,7 @@ const HealthMetrics = () => {
                   </div>
                   <div>
                     <Label htmlFor="readingType">Reading Type</Label>
-                    <select id="readingType" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                    <select id="readingType" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" >
                       <option value="fasting">Fasting</option>
                       <option value="afterMeal">After Meal</option>
                       <option value="random">Random</option>

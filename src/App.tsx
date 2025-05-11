@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -31,18 +30,13 @@ const App = () => (
                 <main className="flex-1">
                   <Routes>
                     <Route path="/" element={<Index />} />
-                    <Route path="/chat" element={
-                      <Chat />
-                    } />
-                    <Route path="/symptoms" element={
-                      <Symptoms />
-                    } />
-                    <Route path="/health-metrics" element={
-                      <HealthMetricsPage />
-                    } />
-                    <Route path="/profile" element={
-                      <Profile />
-                    } />
+                    <Route path="/chat" element={<Chat />} />
+                    <Route path="/symptoms" element={<Symptoms />} />
+                    <Route
+                      path="/health-metrics"
+                      element={<HealthMetricsPage />}
+                    />
+                    <Route path="/profile" element={<Profile />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </main>

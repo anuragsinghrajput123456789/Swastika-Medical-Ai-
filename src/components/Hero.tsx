@@ -20,7 +20,7 @@ const Hero = () => {
       <div className="container relative z-10 mx-auto px-4">
         <div className="flex flex-col items-center text-center">
           <h1 className="text-4xl font-bold leading-tight md:text-6xl lg:text-7xl">
-            Your Personal{" "}
+            Swastha-AI {" "}
             <span className="bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
               Medical Assistant
             </span>
