@@ -1,10 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import {
-  FaHeartbeat,
-  FaCapsules,
-  FaUserMd,
-  FaStethoscope,
-} from "react-icons/fa";
+import { FaHeartbeat, FaCapsules, FaUserMd, FaStethoscope } from "react-icons/fa";
 import { IoSend, IoSparklesSharp } from "react-icons/io5";
 import { TbVaccine } from "react-icons/tb";
 import { GiBodyBalance } from "react-icons/gi";
@@ -38,11 +33,7 @@ const MedicalChatInterface = () => {
 
   async function generateResponse(msg) {
     const userMessage = { type: "user", text: msg };
-    const typingIndicator = {
-      type: "bot",
-      text: "Thinking...",
-      isLoading: true,
-    };
+    const typingIndicator = { type: "bot", text: "Thinking...", isLoading: true };
 
     setMessages((prev) => [...prev, userMessage, typingIndicator]);
     setMessage("");
@@ -54,24 +45,20 @@ const MedicalChatInterface = () => {
       });
 
       setMessages((prev) =>
-        prev
-          .filter((msg) => !msg.isLoading)
-          .concat({ type: "bot", text: response.text })
+        prev.filter((msg) => !msg.isLoading).concat({ type: "bot", text: response.text })
       );
     } catch (error) {
       console.error("Error fetching response:", error);
       setMessages((prev) =>
-        prev
-          .filter((msg) => !msg.isLoading)
-          .concat({
-            type: "bot",
-            text: "Oops! Something went wrong. Please try again.",
-          })
+        prev.filter((msg) => !msg.isLoading).concat({
+          type: "bot",
+          text: "Oops! Something went wrong. Please try again.",
+        })
       );
     }
 
     setIsResponse(true);
-  }
+  };
 
   // Example Medical Questions
   const quickQuestions = [
@@ -123,12 +110,9 @@ const MedicalChatInterface = () => {
       {/* Main Content */}
       {!isResponse ? (
         <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <h1 className="text-5xl font-extrabold mb-10 text-center">
-            Swastha-AI
-          </h1>
+          <h1 className="text-5xl font-extrabold mb-10 text-center">Swastha-AI</h1>
           <p className="text-lg text-center max-w-xl mb-12 text-gray-300">
-            Ask any medical question or describe your symptoms. Our AI will help
-            you understand your condition.
+            Ask any medical question or describe your symptoms. Our AI will help you understand your condition.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-5xl animate-fadeIn">
@@ -174,7 +158,30 @@ const MedicalChatInterface = () => {
       )}
 
       {/* Input Box */}
-     
+      <footer className="p-6 border-t border-gray-700 bg-gray-800 shadow-inner">
+        <div className="max-w-5xl mx-auto flex items-center gap-4 bg-gray-700 rounded-full px-6 py-4">
+          <input
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && hitRequest()}
+            placeholder="Describe your symptom or ask a medical question..."
+            className="flex-1 bg-transparent outline-none text-white placeholder:text-gray-400"
+          />
+          <button
+            onClick={hitRequest}
+            disabled={!message}
+            className={`text-2xl transition-colors ${
+              message ? "text-green-500 hover:text-green-400" : "text-gray-600"
+            }`}
+            aria-label="Send message"
+          >
+            <IoSend />
+          </button>
+        </div>
+        <p className="text-center text-sm text-gray-500 mt-4">
+          Powered by Gemini API | Developed by Mr. Anurag Singh
+        </p>
+      </footer>
     </div>
   );
 };
