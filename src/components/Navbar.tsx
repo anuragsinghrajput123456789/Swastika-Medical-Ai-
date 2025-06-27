@@ -3,7 +3,13 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Menu, Home, MessageCircle, ClipboardList, Activity, User } from "lucide-react";
+import {
+  Menu,
+  Home,
+  MessageCircle,
+  ClipboardList,
+  Activity,
+} from "lucide-react";
 
 // Inline SVG for Logo
 const HeartLogo = () => (
@@ -22,10 +28,22 @@ export const Navbar = () => {
 
   const navItems = [
     { name: "Home", href: "/", icon: <Home className="h-5 w-5" /> },
-    { name: "Chat", href: "/chat", icon: <MessageCircle className="h-5 w-5" /> },
-    { name: "Symptoms", href: "/symptoms", icon: <ClipboardList className="h-5 w-5" /> },
-    { name: "Health Metrics", href: "/health-metrics", icon: <Activity className="h-5 w-5" /> },
-    { name: "Profile", href: "/profile", icon: <User className="h-5 w-5" /> },
+    {
+      name: "Chat",
+      href: "/chat",
+      icon: <MessageCircle className="h-5 w-5" />,
+    },
+    {
+      name: "Symptoms",
+      href: "/symptoms",
+      icon: <ClipboardList className="h-5 w-5" />,
+    },
+    {
+      name: "Health Metrics",
+      href: "/health-metrics",
+      icon: <Activity className="h-5 w-5" />,
+    },
+    
   ];
 
   return (

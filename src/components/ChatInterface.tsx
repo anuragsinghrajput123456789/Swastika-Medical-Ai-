@@ -12,7 +12,7 @@ const MedicalChatInterface = () => {
   const messagesEndRef = useRef(null);
 
   const ai = new GoogleGenAI({
-    apiKey: "AIzaSyCQ0hm-7AiEGcVI0LeqVoKZB0-q7viWk90",
+    apiKey: "AIzaSyAHI6dEYABoLBXht70PtS97_fPFruDipH8",
   });
 
   const scrollToBottom = () => {

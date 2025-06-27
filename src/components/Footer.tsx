@@ -75,10 +75,10 @@ const Footer = () => {
             <h3 className="font-bold mb-4">Contact</h3>
             <ul className="space-y-2">
               <li className="text-muted-foreground">
-                <span className="font-medium">Email:</span> support@medichat.com
+                <span className="font-medium">Email:</span> anniDev@gmail.com
               </li>
               <li className="text-muted-foreground">
-                <span className="font-medium">Phone:</span> +1 (555) 123-4567
+                <span className="font-medium">Phone:</span> +91XXXXXXXXX
               </li>
               <li className="flex space-x-4 mt-4">
                 <a href="#" className="text-muted-foreground hover:text-foreground">
